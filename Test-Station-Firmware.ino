@@ -6,7 +6,7 @@
 #include <Ethernet.h> // The Ethernet library includes the client
 #include <Progmem.h> // Allows us to sacrifice flash for DRAM
 #include <Wire.h>
-#include <Adafruit_MPL3115A2.h>
+#include "Adafruit_MPL3115A2.h"
 #include <Adafruit_GPS.h>
 #include <SoftwareSerial.h>
 #include <Adafruit_Sensor.h>
