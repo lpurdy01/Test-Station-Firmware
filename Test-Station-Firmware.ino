@@ -1,62 +1,6 @@
-/*****************************************************************
- * Phant_Ethernet.ino
- * Post data to SparkFun's data stream server system (phant) using
- * an Arduino and an Ethernet Shield.
- * Jim Lindblom @ SparkFun Electronics
- * Original Creation Date: July 3, 2014
- * 
- * This sketch uses an Arduino Uno to POST sensor readings to 
- * SparkFun's data logging streams (http://data.sparkfun.com). 
- * 
- * Before uploading this sketch, there are a number of global vars
- * that need adjusting:
- * 1. Ethernet Stuff: Fill in your desired MAC and a static IP, even
- * if you're planning on having DCHP fill your IP in for you.
- * The static IP is only used as a fallback, if DHCP doesn't work.
- * 2. Phant Stuff: Fill in your data stream's public, private, and 
- * data keys before uploading!
- * 
- * Hardware Hookup:
- * These components are connected to the Arduino's I/O pins:
- * D3 - Active-low momentary button (pulled high internally)
- * A0 - Photoresistor (which is combined with a 10k resistor
- * to form a voltage divider output to the Arduino).
- * D5 - SPST switch to select either 5V or 0V to this pin.
- * A CC3000 Shield sitting comfortable on top of your Arduino.
- * 
- * Development environment specifics:
- * IDE: Arduino 1.0.5
- * Hardware Platform: RedBoard & PoEthernet Shield
- * 
- * This code is beerware; if you see me (or any other SparkFun 
- * employee) at the local, and you've found our code helpful, please 
- * buy us a round!
- * 
- * Much of this code is largely based on David Mellis' WebClient
- * example in the Ethernet library.
- * 
- * Distributed as-is; no warranty is given.
- *****************************************************************/
-/**************************************************************************/
-/*!
- @file     Adafruit_MPL3115A2.cpp
- @author   K.Townsend (Adafruit Industries)
- @license  BSD (see license.txt)
- 
- Example for the MPL3115A2 barometric pressure sensor
- 
- This is a library for the Adafruit MPL3115A2 breakout
- ----> https://www.adafruit.com/products/1893
- 
- Adafruit invests time and resources providing this open source code,
- please support Adafruit and open-source hardware by purchasing
- products from Adafruit!
- 
- @section  HISTORY
- 
- v1.0 - First release
- */
-/**************************************************************************/
+//See Phant 1
+//See Altimeter 1
+//See Magnentometer 1
 
 #include <SPI.h> // Required to use Ethernet
 #include <Ethernet.h> // The Ethernet library includes the client
@@ -65,39 +9,22 @@
 #include <Adafruit_MPL3115A2.h>
 #include <Adafruit_GPS.h>
 #include <SoftwareSerial.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_HMC5883_U.h>
 
 
 /////////////
 //Altimeter//
 /////////////
-// Power by connecting Vin to 3-5V, GND to GND
-// Uses I2C - connect SCL to the SCL pin, SDA to SDA pin
-// See the Wire tutorial for pinouts for each Arduino
-// http://arduino.cc/en/reference/wire
+//See Altimeter 2
 Adafruit_MPL3115A2 baro = Adafruit_MPL3115A2();
 
-// Test code for Adafruit GPS modules using MTK3329/MTK3339 driver
-//
-// This code just echos whatever is coming from the GPS unit to the
-// serial monitor, handy for debugging!
-//
-// Tested and works great with the Adafruit Ultimate GPS module
-// using MTK33x9 chipset
-//    ------> http://www.adafruit.com/products/746
-// Pick one up today at the Adafruit electronics shop 
-// and help support open source hardware & software! -ada
 
+///////
+//GPS//
+///////
 
-
-// Connect the GPS Power pin to 5V
-// Connect the GPS Ground pin to ground
-// If using software serial (sketch example default):
-//   Connect the GPS TX (transmit) pin to Digital 3
-//   Connect the GPS RX (receive) pin to Digital 2
-// If using hardware serial (e.g. Arduino Mega):
-//   Connect the GPS TX (transmit) pin to Arduino RX1, RX2 or RX3
-//   Connect the GPS RX (receive) pin to matching TX1, TX2 or TX3
-
+//See GPS 2
 // If using software serial, keep these lines enabled
 // (you can change the pin numbers to match your wiring):
 
@@ -116,6 +43,28 @@ Adafruit_GPS GPS(&mySerial);
 // off by default!
 boolean usingInterrupt = false;
 void useInterrupt(boolean); // Func prototype keeps Arduino 0023 happy
+
+//////////////////
+// Magnetometer //
+//////////////////
+/* Assign a unique ID to this sensor at the same time */
+Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
+
+void displaySensorDetails(void)
+{
+  sensor_t sensor;
+  mag.getSensor(&sensor);
+  Serial.println("------------------------------------");
+  Serial.print  ("Sensor:       "); Serial.println(sensor.name);
+  Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
+  Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
+  Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println(" uT");
+  Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" uT");
+  Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" uT");  
+  Serial.println("------------------------------------");
+  Serial.println("");
+  delay(500);
+}
 
 
 ///////////////////////
@@ -151,12 +100,16 @@ String fieldData[NUM_FIELDS];
 
 String name = "Lab_Test";
 
+///////////////////////////////////////////////////////////////////////////////////////
+//////setup                                                  //////////////////////////
+
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Adafruit_MPL3115A2 test!");
   fieldData[10] = name;
   setup_GPS();
+  setup_magnetometer();
 
   // Set Up Ethernet:
   setupEthernet();
@@ -190,6 +143,9 @@ void useInterrupt(boolean v) {
 
 uint32_t timer = millis();
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////Loop                                                   /////////////////////////////////////////
+
 void loop()
 {
   ///////////////////
@@ -202,8 +158,18 @@ void loop()
   altimeter_get_debug();
   altimeter_post_to_table();
   delay(100);
+  ///////
+  //GPS//
+  ///////
   GPSloop();
-  delay(250);
+  delay(100);
+  GPSPost();
+  //////////////////
+  // Magnetometer //
+  //////////////////
+  
+  loop_magnetometer();
+  
   ///////////////
   //Phant Stuff//
   ///////////////
@@ -214,7 +180,44 @@ void loop()
   delay(20000);
 
 }
-
+void setup_magnetometer()
+{
+  Serial.println("HMC5883 Mag Test"); Serial.println("");
+  
+  /* Initialise the sensor */
+  if(!mag.begin())
+  {
+    /* There was a problem detecting the HMC5883 ... check your connections */
+    Serial.println("No HMC5883 detected");
+    while(1);
+  }
+  
+  /* Display some basic information on this sensor */
+  displaySensorDetails();
+}
+void loop_magnetometer()
+{
+  /* Get a new sensor event */ 
+  sensors_event_t event; 
+  mag.getEvent(&event);
+ 
+  /* Display the results (magnetic vector values are in micro-Tesla (uT)) */
+  Serial.print("X: "); Serial.print(event.magnetic.x); Serial.print("  ");
+  Serial.print("Y: "); Serial.print(event.magnetic.y); Serial.print("  ");
+  Serial.print("Z: "); Serial.print(event.magnetic.z); Serial.print("  ");Serial.println("uT");
+  
+  delay(100);
+}
+void post_magnetometer()
+{
+  /* Get a new sensor event */ 
+  sensors_event_t event; 
+  mag.getEvent(&event);
+  
+  fieldData[7] = String(event.magnetic.x);
+  fieldData[21] = String(event.magnetic.y);
+  fieldData[22] = String(event.magnetic.z);
+}
 void altimeter_post_to_table()
 {
   float pascals = baro.getPressure();
@@ -383,13 +386,12 @@ void GPSloop()
     }
   }
 }
-String GPSDatestamp()
-{
-  char datestamp[25] = "0000000000000000000000000";
-  datestamp = GPS.year+"-"+GPS.month+"-"+GPS.day
-}
 void GPSPost()
 {
-  
+  fieldData[0] = String(GPS.fixquality);
+  fieldData[2] = String(GPS.altitude);
+  fieldData[5] = String(GPS.latitude);
+  fieldData[6] = String(GPS.longitude);
+  fieldData[9] = String(GPS.satellites);
 }
 
