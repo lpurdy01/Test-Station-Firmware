@@ -4,7 +4,7 @@
 
 #include <SPI.h> // Required to use Ethernet
 #include <Ethernet.h> // The Ethernet library includes the client
-#include <Progmem.h> // Allows us to sacrifice flash for DRAM
+#include <avr/pgmspace.h>
 #include <Wire.h>
 #include "Adafruit_MPL3115A2.h"
 #include "Adafruit_GPS.h"
@@ -71,8 +71,7 @@ void displaySensorDetails(void)
 // Ethernet Settings //
 ///////////////////////
 // Enter a MAC address for your controller below.
-byte mac[] = { 
-  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 // if you don't want to use DNS (and reduce your sketch size)
 // use the numeric IP instead of the name for the server:
 IPAddress server(54,86,132,254);  // numeric IP for data.sparkfun.com
@@ -91,7 +90,7 @@ EthernetClient client;
 const String publicKey = "KJQE5LjM03T0gVbnD4dM";
 const String privateKey = "vznMWJm1KeHy1pbevEDd";
 const byte NUM_FIELDS = 23;
-const String fieldNames[NUM_FIELDS] = {"accuracy","altitude_meters","elevation_gps_meters","heading","humidity","latitude","longitude","magnetometer_x_ut","pressure_kpa","satellites","station","tempature_c","timestamp","value1","value2","value3","value4","value5","value6","value7","value8","y_ut","z_ut"};
+const String fieldNames[NUM_FIELDS] PROGMEM = {"accuracy","altitude_meters","elevation_gps_meters","heading","humidity","latitude","longitude","magnetometer_x_ut","pressure_kpa","satellites","station","tempature_c","timestamp","value1","value2","value3","value4","value5","value6","value7","value8","y_ut","z_ut"};
 String fieldData[NUM_FIELDS];
 
 //////////////////////
@@ -161,7 +160,11 @@ void loop()
   ///////
   //GPS//
   ///////
-  GPSloop();
+  while(! GPS.fix)
+  {
+    GPSloop();
+    delay(2000);
+  }
   delay(100);
   GPSPost();
   //////////////////
@@ -258,7 +261,7 @@ void postData()
     for (int i=0; i<NUM_FIELDS; i++)
     {
       client.print("&");
-      client.print(fieldNames[i]);
+      client.print(pgm_read_word(&fieldNames[i]));
       client.print("=");
       client.print(fieldData[i]);
     }
@@ -270,7 +273,7 @@ void postData()
   }
   else
   {
-    Serial.println(F("Connection failed"));
+    Serial.println(("Connection failed"));
   } 
 
   // Check for a response from the server, and route it
@@ -289,7 +292,7 @@ void postData()
 
 void setupEthernet()
 {
-  Serial.println("Setting up Ethernet...");
+  Serial.println("Setuping Ethernet");
   // start the Ethernet connection:
   Ethernet.begin(mac, ip);
   Serial.print("My IP address: ");
@@ -299,7 +302,7 @@ void setupEthernet()
 }
 void setup_GPS()
 {
-  Serial.println("Adafruit GPS library basic test!");
+  Serial.println("Setup GPS");
 
   // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
   GPS.begin(9600);
@@ -374,15 +377,15 @@ void GPSloop()
       Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
       Serial.print(", "); 
       Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
-      Serial.print("Location (in degrees, works with Google Maps): ");
+      Serial.print("Location degrees: ");
       Serial.print(GPS.latitudeDegrees, 4);
       Serial.print(", "); 
       Serial.println(GPS.longitudeDegrees, 4);
       
-      Serial.print("Speed (knots): "); Serial.println(GPS.speed);
-      Serial.print("Angle: "); Serial.println(GPS.angle);
-      Serial.print("Altitude: "); Serial.println(GPS.altitude);
-      Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
+      Serial.print("Spd knots: "); Serial.println(GPS.speed);
+      Serial.print("Ang: "); Serial.println(GPS.angle);
+      Serial.print("Alt: "); Serial.println(GPS.altitude);
+      Serial.print("Sats: "); Serial.println((int)GPS.satellites);
     }
   }
 }
