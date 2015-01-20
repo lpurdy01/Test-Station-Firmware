@@ -28,11 +28,11 @@ Adafruit_MPL3115A2 baro = Adafruit_MPL3115A2();
 // If using software serial, keep these lines enabled
 // (you can change the pin numbers to match your wiring):
 
-SoftwareSerial mySerial(3, 2);
-Adafruit_GPS GPS(&mySerial);
+//SoftwareSerial mySerial(3, 2);
+//Adafruit_GPS GPS(&mySerial);
 // If using hardware serial (e.g. Arduino Mega), comment
 // out the above six lines and enable this line instead:
-//Adafruit_GPS GPS(&Serial1);
+Adafruit_GPS GPS(&Serial1);
 
 // Set GPSECHO to 'false' to turn off echoing the GPS data to the Serial console
 // Set to 'true' if you want to debug and listen to the raw GPS sentences
@@ -329,7 +329,7 @@ void setup_GPS()
 
   delay(1000);
   // Ask for firmware version
-  mySerial.println(PMTK_Q_RELEASE);
+  Serial1.println(PMTK_Q_RELEASE);
 }
 void GPSloop()
 {
